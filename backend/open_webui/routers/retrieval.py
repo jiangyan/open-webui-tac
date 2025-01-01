@@ -137,17 +137,17 @@ def get_rf(
                 log.error(f"ColBERT: {e}")
                 raise Exception(ERROR_MESSAGES.DEFAULT(e))
         else:
-            import sentence_transformers
-
             try:
-                rf = sentence_transformers.CrossEncoder(
+                from open_webui.retrieval.models.cross_encoder import LoggedCrossEncoder
+                
+                rf = LoggedCrossEncoder(
                     get_model_path(reranking_model, auto_update),
                     device=DEVICE_TYPE,
                     trust_remote_code=RAG_RERANKING_MODEL_TRUST_REMOTE_CODE,
                 )
-            except:
-                log.error("CrossEncoder error")
-                raise Exception(ERROR_MESSAGES.DEFAULT("CrossEncoder error"))
+            except Exception as e:
+                log.error(f"CrossEncoder error: {e}")
+                raise Exception(ERROR_MESSAGES.DEFAULT(f"CrossEncoder error: {e}"))
     return rf
 
 
