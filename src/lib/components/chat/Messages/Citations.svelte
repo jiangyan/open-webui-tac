@@ -6,29 +6,19 @@
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext('i18n');
 
-	interface Source {
-		id?: string;
-		source: {
-			name: string;
-			url?: string;
-		};
-		document: string[];
-		metadata?: any[];
-		distances?: number[];
-	}
+	export let sources = [];
 
-	export let sources: Source[] = [];
-	let citations: Source[] = [];
+	let citations = [];
 	let showPercentage = false;
 	let showRelevance = true;
 
-	let showCitation = false;
-	let selectedCitation: Source | null = null;
+	let showCitationModal = false;
+	let selectedCitation: any = null;
 	let isCollapsibleOpen = false;
 
-	function calculateShowRelevance(sources: Source[]) {
+	function calculateShowRelevance(sources: any[]) {
 		const distances = sources.flatMap((citation) => citation.distances ?? []);
 		const inRange = distances.filter((d) => d !== undefined && d >= -1 && d <= 1).length;
 		const outOfRange = distances.filter((d) => d !== undefined && (d < -1 || d > 1)).length;
@@ -47,44 +37,49 @@
 		return true;
 	}
 
-	function shouldShowPercentage(sources: Source[]) {
+	function shouldShowPercentage(sources: any[]) {
 		const distances = sources.flatMap((citation) => citation.distances ?? []);
-		const inRange = distances.filter((d) => d !== undefined && d >= -1 && d <= 1).length;
-		const outOfRange = distances.filter((d) => d !== undefined && (d < -1 || d > 1)).length;
-
-		if (distances.length === 0) {
-			return false;
-		}
-
-		if (
-			(inRange === distances.length - 1 && outOfRange === 1) ||
-			(outOfRange === distances.length - 1 && inRange === 1)
-		) {
-			return false;
-		}
-
-		return true;
+		return distances.every((d) => d !== undefined && d >= -1 && d <= 1);
 	}
 
 	$: {
-		citations = sources.reduce((acc: Source[], source: Source) => {
-			const { id, source: _source, document, metadata, distances } = source;
-
-			const existingSource = acc.find((s) => s.id === id);
-
-			if (existingSource) {
-				existingSource.document.push(...document);
-				if (metadata) existingSource.metadata?.push(...metadata);
-				if (distances) existingSource.distances?.push(...distances);
-			} else {
-				acc.push({
-					id: id,
-					source: _source,
-					document: [...document],
-					metadata: metadata ? [...metadata] : [],
-					distances: distances ? [...distances] : undefined
-				});
+		citations = sources.reduce((acc, source) => {
+			if (Object.keys(source).length === 0) {
+				return acc;
 			}
+
+			source.document.forEach((document, index) => {
+				const metadata = source.metadata?.[index];
+				const distance = source.distances?.[index];
+
+				// Within the same citation there could be multiple documents
+				const id = metadata?.source ?? 'N/A';
+				let _source = source?.source;
+
+				if (metadata?.name) {
+					_source = { ..._source, name: metadata.name };
+				}
+
+				if (id.startsWith('http://') || id.startsWith('https://')) {
+					_source = { ..._source, name: id, url: id };
+				}
+
+				const existingSource = acc.find((item) => item.id === id);
+
+				if (existingSource) {
+					existingSource.document.push(document);
+					existingSource.metadata.push(metadata);
+					if (distance !== undefined) existingSource.distances.push(distance);
+				} else {
+					acc.push({
+						id: id,
+						source: _source,
+						document: [document],
+						metadata: metadata ? [metadata] : [],
+						distances: distance !== undefined ? [distance] : undefined
+					});
+				}
+			});
 			return acc;
 		}, []);
 
@@ -94,23 +89,23 @@
 </script>
 
 {#if import.meta.env.VITE_CITATION_DISPLAY_MODE === 'sidepanel'}
-	<CitationsSidePanel
-		bind:show={showCitation}
-		citation={selectedCitation}
-		{showPercentage}
-		{showRelevance}
-	/>
+    <CitationsSidePanel
+        bind:show={showCitationModal}
+        citation={selectedCitation}
+        {showPercentage}
+        {showRelevance}
+    />
 {:else}
-	<CitationsModal
-		bind:show={showCitation}
-		citation={selectedCitation}
-		{showPercentage}
-		{showRelevance}
-	/>
+    <CitationsModal
+        bind:show={showCitationModal}
+        citation={selectedCitation}
+        {showPercentage}
+        {showRelevance}
+    />
 {/if}
 
 {#if citations.length > 0}
-	<div class="py-0.5 -mx-0.5 w-full flex gap-1 items-center flex-wrap">
+	<div class=" py-0.5 -mx-0.5 w-full flex gap-1 items-center flex-wrap">
 		{#if citations.length <= 3}
 			<div class="flex text-xs font-medium">
 				{#each citations as citation, idx}
@@ -118,7 +113,7 @@
 						id={`source-${citation.source.name}`}
 						class="no-toggle outline-none flex dark:text-gray-300 p-1 bg-white dark:bg-gray-900 rounded-xl max-w-96"
 						on:click={() => {
-							showCitation = true;
+							showCitationModal = true;
 							selectedCitation = citation;
 						}}
 					>
@@ -148,7 +143,7 @@
 									<button
 										class="no-toggle outline-none flex dark:text-gray-300 p-1 bg-gray-50 hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-850 transition rounded-xl max-w-96"
 										on:click={() => {
-											showCitation = true;
+											showCitationModal = true;
 											selectedCitation = citation;
 										}}
 										on:pointerup={(e) => {
@@ -187,7 +182,7 @@
 							<button
 								class="no-toggle outline-none flex dark:text-gray-300 p-1 bg-gray-50 hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-850 transition rounded-xl max-w-96"
 								on:click={() => {
-									showCitation = true;
+									showCitationModal = true;
 									selectedCitation = citation;
 								}}
 							>
