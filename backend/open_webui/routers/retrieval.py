@@ -1320,6 +1320,7 @@ def query_doc_handler(
                 collection_name=form_data.collection_name,
                 query_embedding=request.app.state.EMBEDDING_FUNCTION(form_data.query),
                 k=form_data.k if form_data.k else request.app.state.config.TOP_K,
+                query=form_data.query,
             )
     except Exception as e:
         log.exception(e)

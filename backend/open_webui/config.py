@@ -1212,6 +1212,10 @@ if VECTOR_DB == "pgvector" and not PGVECTOR_DB_URL.startswith("postgres"):
         "Pgvector requires setting PGVECTOR_DB_URL or using Postgres with vector extension as the primary database."
     )
 
+# Weaviate
+WEAVIATE_URL = os.environ.get("WEAVIATE_URL", "http://localhost:28080")
+WEAVIATE_API_KEY = os.environ.get("WEAVIATE_API_KEY", None)
+
 ####################################
 # Information Retrieval (RAG)
 ####################################

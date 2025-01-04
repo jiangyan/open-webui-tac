@@ -37,11 +37,22 @@ class VectorSearchRetriever(BaseRetriever):
         *,
         run_manager: CallbackManagerForRetrieverRun,
     ) -> list[Document]:
-        result = VECTOR_DB_CLIENT.search(
-            collection_name=self.collection_name,
-            vectors=[self.embedding_function(query)],
-            limit=self.top_k,
-        )
+        # Check vector DB type by class name
+        client_class_name = VECTOR_DB_CLIENT.__class__.__name__
+        
+        if client_class_name == "WeaviateClient":  # Explicit check for Weaviate
+            result = VECTOR_DB_CLIENT.search(
+                collection_name=self.collection_name,
+                vectors=[self.embedding_function(query)],
+                limit=self.top_k,
+                query_str=query
+            )
+        else:  # For other clients like Chroma
+            result = VECTOR_DB_CLIENT.search(
+                collection_name=self.collection_name,
+                vectors=[self.embedding_function(query)],
+                limit=self.top_k,
+            )
 
         ids = result.ids[0]
         metadatas = result.metadatas[0]
@@ -62,13 +73,25 @@ def query_doc(
     collection_name: str,
     query_embedding: list[float],
     k: int,
+    query: str,
 ):
     try:
-        result = VECTOR_DB_CLIENT.search(
-            collection_name=collection_name,
-            vectors=[query_embedding],
-            limit=k,
-        )
+        # Check vector DB type by class name
+        client_class_name = VECTOR_DB_CLIENT.__class__.__name__
+        
+        if client_class_name == "WeaviateClient":  # Explicit check for Weaviate
+            result = VECTOR_DB_CLIENT.search(
+                collection_name=collection_name,
+                vectors=[query_embedding],
+                limit=k,
+                query_str=query,
+            )
+        else:  # For other clients like Chroma
+            result = VECTOR_DB_CLIENT.search(
+                collection_name=collection_name,
+                vectors=[query_embedding],
+                limit=k,
+            )
 
         if result:
             log.info(f"query_doc:result {result.ids} {result.metadatas}")
@@ -191,6 +214,7 @@ def query_collection(
                         collection_name=collection_name,
                         k=k,
                         query_embedding=query_embedding,
+                        query=query
                     )
                     if result is not None:
                         results.append(result.model_dump())
