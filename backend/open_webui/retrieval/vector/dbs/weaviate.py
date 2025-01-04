@@ -51,7 +51,7 @@ class WeaviateClient:
                     wvc.config.Property(
                         name="text",
                         data_type=wvc.config.DataType.TEXT,
-                        tokenization=wvc.config.Tokenization.WORD
+                        tokenization=wvc.config.Tokenization.GSE
                     ),
                     wvc.config.Property(
                         name="metadata",
